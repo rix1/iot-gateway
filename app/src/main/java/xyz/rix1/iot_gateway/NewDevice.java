@@ -66,6 +66,7 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
 
     private static final boolean DEBUG = true;
 
+    static final String[] DEBUGDEVICES = new String[] {"Nordic_HRM", "Fitbit Square", "Philips IntelliTemp"};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -192,7 +193,6 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
                         Log.d(TAG, "WOPS, YOU CANNOT TEST FORDDI VI HAKK FUNNET NOEN CHARACTERISTICS");
                     }
                 }
-
             }
         });
 
