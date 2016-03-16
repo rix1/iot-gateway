@@ -1,16 +1,13 @@
 package xyz.rix1.iot_gateway;
 
 import android.Manifest;
-import android.app.Activity;
+import android.app.*;
 import android.bluetooth.*;
 import android.content.*;
 import android.content.pm.PackageManager;
-import android.os.Build;
-import android.os.Handler;
-import android.os.IBinder;
+import android.os.*;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -19,10 +16,13 @@ import android.widget.*;
 import android.widget.AdapterView.OnItemSelectedListener;
 import xyz.rix1.iot_gateway.BLE.SampleGattAttributes;
 import xyz.rix1.iot_gateway.helpers.DeviceAddedListener;
+import xyz.rix1.iot_gateway.helpers.DisplayDeviceDialog;
 import xyz.rix1.iot_gateway.helpers.Endpoint;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class NewDevice extends AppCompatActivity implements OnItemSelectedListener, DeviceAddedListener{
 
@@ -33,11 +33,14 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
     TextView helper;
 
     private ArrayList<BluetoothDevice> deviceList;
-    private ArrayAdapter<BluetoothDevice> deviceAdapter;
-    private Spinner deviceSpinner;
+//    private ArrayAdapter<BluetoothDevice> deviceAdapter;
+//    private Spinner deviceSpinner;
+//    private int deviceSpinnerID;
+
     private Spinner endpointSpinner;
-    private int deviceSpinnerID;
     private int endpointSpinnerID;
+
+    final DisplayDeviceDialog editNameDialog = new DisplayDeviceDialog();
 
     private String mDeviceName;
     private String mDeviceAddress;
@@ -100,18 +103,20 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
 
         endpointSpinner = (Spinner) findViewById(R.id.endpoint_spinner);
         endpointSpinnerID = endpointSpinner.getId();
-
-        deviceSpinner = (Spinner) findViewById(R.id.device_spinner);
-        deviceSpinnerID = deviceSpinner.getId();
-
         ArrayAdapter<Endpoint> adapter = new ArrayAdapter<Endpoint>(this, android.R.layout.simple_spinner_dropdown_item, endpoints);
-        deviceAdapter = new ArrayAdapter<BluetoothDevice>(this, android.R.layout.simple_spinner_dropdown_item, deviceList);
-
-        deviceSpinner.setAdapter(deviceAdapter);
-        deviceSpinner.setOnItemSelectedListener(this);
-
         endpointSpinner.setAdapter(adapter);
         endpointSpinner.setOnItemSelectedListener(this);
+
+
+//        deviceSpinner = (Spinner) findViewById(R.id.device_spinner);
+//        deviceSpinnerID = deviceSpinner.getId();
+//        deviceAdapter = new ArrayAdapter<BluetoothDevice>(this, android.R.layout.simple_spinner_dropdown_item, deviceList);
+
+//        deviceSpinner.setAdapter(deviceAdapter);
+//        deviceSpinner.setOnItemSelectedListener(this);
+
+
+        testButton.setVisibility(View.VISIBLE);
 
         if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
             Toast.makeText(this, R.string.ble_not_supported, Toast.LENGTH_SHORT).show();
@@ -151,6 +156,9 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
 
             @Override
             public void onClick(View v) {
+
+//                editNameDialog.update("Nytt element");
+
                 // TODO: 15/03/16 Connect to device and display data
 
                 mDeviceName = selectedDevice.getName();
@@ -207,22 +215,34 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
                     addDevice.setText("Stop scan...");
                     helper.setVisibility(View.GONE);
                     scanLeDevice(true);
+                    scanDevices();
                 }else{
                     addDevice.setText("Scan");
                     scanLeDevice(false);
                 }
             }
         });
-
         Intent gattServiceIntent = new Intent(getActivity(), BluetoothLeService.class);
         bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
     }
 
     public void scanDevices(){
-//        DialogFragment newFragment = new DisplayDeviceDialog();
-//        newFragment.show(getFragmentManager(), "devicescan");
-//        deviceAdded = true;
-//        checkCompleted();
+
+        FragmentManager manager = getFragmentManager();
+        Fragment frag = manager.findFragmentByTag("test");
+
+        Bundle bundle = new Bundle();
+        bundle.putParcelableArrayList("devices", deviceList);
+        editNameDialog.setArguments(bundle);
+
+        if (frag != null) {
+            manager.beginTransaction().remove(frag).commit();
+        }
+
+        editNameDialog.show(manager, "test");
+
+        deviceAdded = true;
+        checkCompleted();
     }
 
 
@@ -301,7 +321,7 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
         // Initializes list view adapter.
 //        mLeDeviceListAdapter = new LeDeviceListAdapter();
 //        setListAdapter(mLeDeviceListAdapter);
-        scanLeDevice(true);
+//        scanLeDevice(true);
 
         registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
         if (mBluetoothLeService != null) {
@@ -374,9 +394,7 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
 //        Log.d(TAG, "Spinner " + parent.getId() + " was activated: " + id + " at pos " + position);
         int spinnerID = parent.getId();
 
-        if (spinnerID == deviceSpinnerID) {
-            setDevice(position);
-        } else if (spinnerID == endpointSpinnerID) {
+        if (spinnerID == endpointSpinnerID) {
             setEndpoint(position);
         }else{
             Log.d(TAG, "Some random spinner got activated. Fuck the what");
@@ -415,9 +433,6 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
     }
 
 
-
-
-
     public Context getActivity() {
         return getApplicationContext();
     }
@@ -433,8 +448,9 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
                         public void run() {
                             if(!deviceList.contains(device)){
                                 deviceList.add(device);
-                                deviceSpinner.setVisibility(View.VISIBLE);
-                                deviceAdapter.notifyDataSetChanged();
+//                                deviceSpinner.setVisibility(View.VISIBLE);
+//                                deviceAdapter.notifyDataSetChanged();
+                                editNameDialog.update(deviceList);
                             }
                         }
                     });

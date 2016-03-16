@@ -61,14 +61,75 @@
                     android:text="@string/newDevice_description"
                     />
 
-            <Spinner
+            <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                <Button
+                        android:id="@+id/btn_removeDevice"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_alignParentTop="true"
+                        android:layout_alignParentEnd="true"
+                        android:layout_marginTop="5dp"
+                        android:textScaleX="1dp"
+                        android:text="X"
+                        android:background="@android:color/transparent"
+                        />
+
+            <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@color/lightgray"
                     android:layout_marginTop="10dp"
-                    android:id="@+id/device_spinner"
-                    android:spinnerMode="dropdown"
-                    android:prompt="@string/endpoint_select"
-                    android:visibility="gone"
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content" />
+                    android:orientation="vertical"
+                    android:paddingLeft="10dp"
+                    android:paddingTop="15dp"
+                    android:paddingBottom="15dp"
+                    >
+
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Data Source"
+                        android:textColor="@color/darkgray"
+                        />
+                <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        >
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Nordic_HRM"
+                        android:textStyle="bold"
+                        android:textColor="@color/darkgray"
+                        />
+
+                    <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="(60:33:4B:0D:F0:94)"
+                            android:layout_marginLeft="8dp"
+                            />
+                </LinearLayout>
+
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Data Source"
+                        android:textColor="@color/darkgray"
+                        />
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Heart rate measurement"
+                        android:textStyle="bold"
+                        android:textColor="@color/darkgray"
+                        />
+            </LinearLayout>
+            </RelativeLayout>
 
             <TextView
                     android:id="@+id/txt_helper"

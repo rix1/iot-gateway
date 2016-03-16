@@ -3,7 +3,7 @@ package xyz.rix1.iot_gateway.helpers;
 /**
  * Created by rikardeide on 15/03/16.
  */
-public class Endpoint {
+public class Endpoint{
 
     private String address;
     private int port;
