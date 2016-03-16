@@ -14,6 +14,9 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.*;
 import android.widget.AdapterView.OnItemSelectedListener;
+import im.delight.android.ddp.Meteor;
+import im.delight.android.ddp.MeteorCallback;
+import im.delight.android.ddp.ResultListener;
 import xyz.rix1.iot_gateway.BLE.SampleGattAttributes;
 import xyz.rix1.iot_gateway.helpers.DeviceAddedListener;
 import xyz.rix1.iot_gateway.helpers.DisplayDeviceDialog;
@@ -22,7 +25,7 @@ import xyz.rix1.iot_gateway.helpers.Endpoint;
 import java.util.ArrayList;
 import java.util.List;
 
-public class NewDevice extends AppCompatActivity implements OnItemSelectedListener, DeviceAddedListener{
+public class NewDevice extends AppCompatActivity implements OnItemSelectedListener, DeviceAddedListener, MeteorCallback {
 
     private static final boolean DEBUG = true;
 
@@ -54,9 +57,13 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
     private final DisplayDeviceDialog deviceDialog = new DisplayDeviceDialog();
     private Spinner endpointSpinner;
     private Button activate, addDevice, btnRemoveDevice;
-    private TextView helper, deviceName, deviceAddress, characteristicName, characteristicValue;
+    private TextView helper, deviceName, deviceAddress, characteristicName, characteristicValue, helper2;
     private EditText deviceNickName;
     private boolean devicePickerIsActive;
+
+    private Meteor mMeteor;
+    private boolean sendData;
+    private ResultListener resultListener;
 
 
     @Override
@@ -65,10 +72,12 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
         setContentView(R.layout.activity_new_device);
 
         mHandler = new Handler();
-        deviceAdded = endpointAdded = false;
+        sendData = deviceAdded = endpointAdded = false;
 
-        deviceList = new ArrayList<BluetoothDevice>();
+
+        deviceList = new ArrayList<>();
         helper = (TextView) findViewById(R.id.txt_helper);
+        helper2 = (TextView) findViewById(R.id.txt_helper2);
         deviceNickName = (EditText) findViewById(R.id.device_name_field);
         deviceName = (TextView) findViewById(R.id.device_name);
         deviceAddress = (TextView) findViewById(R.id.device_address);
@@ -84,14 +93,43 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
         bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
     }
 
+
+    private void meteorConnect(Endpoint endpoint){
+        // create a new instance
+        mMeteor = new Meteor(this, endpoint.getURL());
+
+        // register the callback that will handle events and receive messages
+        mMeteor.addCallback(this);
+
+        // establish the connection
+        mMeteor.connect();
+
+        resultListener = new ResultListener() {
+            @Override
+            public void onSuccess(String s) {
+                Log.d(TAG, "DDP response: " + s);
+                helper2.setText("Connected to server");
+                helper2.setVisibility(View.VISIBLE);
+            }
+
+            @Override
+            public void onError(String s, String s1, String s2) {
+                Log.d(TAG, "DDP error " + s);
+                helper2.setText("Could not connect to server");
+                helper2.setVisibility(View.VISIBLE);
+            }
+        };
+    }
+
+
     private void initializeEndpoints(){
         endpoints = new ArrayList<Endpoint>();
 
         if(DEBUG){
-            endpoints.add(new Endpoint("123.32.12.12", 1233, "St. Olavs"));
-            endpoints.add(new Endpoint("123.32.12.12", 1233, "GE Moneybank"));
-            endpoints.add(new Endpoint("123.32.12.12", 1233, "Google Health"));
-            endpoints.add(new Endpoint("123.32.12.12", 1233, "Home Server"));
+            endpoints.add(new Endpoint("0.0.0.0", 0000, "Please select..."));
+            endpoints.add(new Endpoint("10.20.106.181", 3000, "Personal server"));
+            endpoints.add(new Endpoint("10.20.106.181", 3000, "Google Health"));
+            endpoints.add(new Endpoint("10.20.106.181", 3000, "St. Olavs"));
         }
         ArrayAdapter<Endpoint> adapter = new ArrayAdapter<Endpoint>(this, android.R.layout.simple_spinner_dropdown_item, endpoints);
         endpointSpinner = (Spinner) findViewById(R.id.endpoint_spinner);
@@ -118,6 +156,7 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
             public void onClick(View v) {
                 // TODO: 16/03/16 Finalize connection and return
                 Log.d(TAG, "Ready for activation: " + deviceNickName.getText().toString() + " device: " + selectedDevice + " to endpoint: " + selectedEndpoint);
+                sendData = true;
             }
         });
 
@@ -169,6 +208,8 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
 
     public void resetSearch(){
         deviceList.clear();
+        deviceAdded = false;
+        checkCompleted();
         stopSearch();
         helper.setVisibility(View.GONE);
         mBluetoothLeService.disconnect();
@@ -194,13 +235,25 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
         checkCompleted();
     }
 
-    public void checkCompleted(){
-        activate.setEnabled(deviceAdded && endpointAdded);
+    public void <checkCompleted(){
+        boolean isComplete = (deviceAdded && endpointAdded);
+        sendData = isComplete;
+        activate.setEnabled(isComplete);
     }
 
     public void setEndpoint(int pos) {
+        findViewById(R.id.endpoint_intro_text).setVisibility(View.GONE);
         this.selectedEndpoint = endpoints.get(pos);
         endpointAdded = (pos > 0);
+        if(endpointAdded){
+            Log.d(TAG, "Adding endpoint and connecting to meteor...");
+            meteorConnect(selectedEndpoint);
+        }else{
+            findViewById(R.id.endpoint_intro_text).setVisibility(View.VISIBLE);
+            endpointAdded = false;
+//            mMeteor.disconnect();
+//            helper2.setText("Disconnected from server...,");
+        }
         checkCompleted();
     }
 
@@ -213,6 +266,9 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
         if(stringExtra!= null){
             characteristicValue.setText(stringExtra);
             characteristicValue.setVisibility(View.VISIBLE);
+            if(sendData){
+                mMeteor.call("deviceData", new Object[]{stringExtra}, resultListener);
+            }
         }
     }
 
@@ -587,4 +643,48 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
         }
     }
 
+    @Override
+    public void onConnect(boolean b) {
+        Log.d(TAG, "METEOR we are connected " + mMeteor.isConnected());
+        mMeteor.call("helloMeteor", new Object[]{"Siri!"}, new ResultListener() {
+            @Override
+            public void onSuccess(String s) {
+                Log.d(TAG, "DDP success: " + s);
+                helper2.setText("Connected to server");
+                helper2.setVisibility(View.VISIBLE);
+            }
+
+            @Override
+            public void onError(String s, String s1, String s2) {
+                Log.d(TAG, "DDP error " + s);
+                helper2.setText("Could not connect to server");
+                helper2.setVisibility(View.VISIBLE);
+            }
+        });
+    }
+
+    @Override
+    public void onDisconnect() {
+        Log.d(TAG, "METEOR we are DISCONNECTED" + mMeteor.isConnected());
+    }
+
+    @Override
+    public void onException(Exception e) {
+
+    }
+
+    @Override
+    public void onDataAdded(String s, String s1, String s2) {
+
+    }
+
+    @Override
+    public void onDataChanged(String s, String s1, String s2, String s3) {
+
+    }
+
+    @Override
+    public void onDataRemoved(String s, String s1) {
+
+    }
 }

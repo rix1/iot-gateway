@@ -23,7 +23,7 @@ public class Endpoint{
     }
 
     public String getURL(){
-        return address + ":" + port;
+        return "ws://" + address + ":" + port + "/websocket";
     }
 
     public String getAddress() {
