@@ -26,38 +26,34 @@ public class DisplayDeviceDialog extends DialogFragment {
     private ArrayList<BluetoothDevice> deviceList = new ArrayList<>();
 
     private final static String TAG = DisplayDeviceDialog.class.getSimpleName();
-    private ArrayAdapter<BluetoothDevice> adapter;
-
+    private ArrayAdapter<String> adapter;
+    private ArrayList<String> humanReadable;
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-
+        humanReadable = new ArrayList<>();
 
         Bundle bundle = getArguments();
-        if(bundle != null)
-        {
+        if(bundle != null) {
             deviceList = bundle.getParcelableArrayList("devices");
-//            adapter.setAdapter(new MusicBaseAdapter(getActivity(), listMusics));
+            convertToHoman();
         }
 
-        adapter = new ArrayAdapter<BluetoothDevice>(getActivity(), android.R.layout.simple_list_item_1, deviceList);
-
-//        adapter = new ArrayAdapter<String>(getActivity(), android.R.layout.simple_list_item_1, deviceList);
-//        ArrayList test = getArguments().getParcelableArrayList("endpoint");
-
+        adapter = new ArrayAdapter<String>(getActivity(), android.R.layout.simple_list_item_1, humanReadable);
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
 
-        builder.setPositiveButton("Search", new DialogInterface.OnClickListener() {
+        builder.setPositiveButton("Search Again", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 // User clicked OK button
-
-//                Activity activity = getActivity();
-//                if(activity instanceof DeviceAddedListener)
-//                    ((DeviceAddedListener)activity).handleDialogClose("YOP!");
+                ((NewDevice)getActivity()).stopSearch();
+                ((NewDevice)getActivity()).devicePickerActive(false);
             }
         });
         builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
+                ((NewDevice)getActivity()).stopSearch();
+                ((NewDevice)getActivity()).devicePickerActive(false);
+
             }
         });
         builder.setTitle("Pick endpoint")
@@ -66,6 +62,8 @@ public class DisplayDeviceDialog extends DialogFragment {
                     public void onClick(DialogInterface dialog, int which) {
                         Log.d("FRAGMENT", "SOMEthing klicked :" + which);
                         ((NewDevice)getActivity()).setDevice(which);
+                        ((NewDevice)getActivity()).stopSearch();
+                        ((NewDevice)getActivity()).devicePickerActive(false);
                     }
                 });
 
@@ -74,6 +72,14 @@ public class DisplayDeviceDialog extends DialogFragment {
 
     public void update(ArrayList<BluetoothDevice> dev){
         deviceList = dev;
+        convertToHoman();
         adapter.notifyDataSetChanged();
+    }
+
+    private void convertToHoman(){
+        humanReadable.clear();
+        for (BluetoothDevice bt : deviceList) {
+            humanReadable.add(bt.getName() + " (" + bt.getAddress() + ")");
+        }
     }
 }

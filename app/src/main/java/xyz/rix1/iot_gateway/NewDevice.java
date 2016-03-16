@@ -53,10 +53,10 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
 
     private final DisplayDeviceDialog deviceDialog = new DisplayDeviceDialog();
     private Spinner endpointSpinner;
-    private Button activate, addDevice;
-    private TextView helper;
-    private TextView test;
-
+    private Button activate, addDevice, btnRemoveDevice;
+    private TextView helper, deviceName, deviceAddress, characteristicName, characteristicValue;
+    private EditText deviceNickName;
+    private boolean devicePickerIsActive;
 
 
     @Override
@@ -69,6 +69,12 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
 
         deviceList = new ArrayList<BluetoothDevice>();
         helper = (TextView) findViewById(R.id.txt_helper);
+        deviceNickName = (EditText) findViewById(R.id.device_name_field);
+        deviceName = (TextView) findViewById(R.id.device_name);
+        deviceAddress = (TextView) findViewById(R.id.device_address);
+
+        characteristicName = (TextView) findViewById(R.id.characteristic_name);
+        characteristicValue = (TextView) findViewById(R.id.characteristic_value);
 
         initializeEndpoints();
         setupButtons();
@@ -96,12 +102,22 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
     private void setupButtons(){
         activate = (Button) findViewById(R.id.btn_activate);
         addDevice = (Button) findViewById(R.id.btn_addDevice);
+        btnRemoveDevice = (Button) findViewById(R.id.btn_removeDevice);
+
+        btnRemoveDevice.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                resetSearch();
+                findViewById(R.id.device_info).setVisibility(View.GONE);
+            }
+        });
 
         activate.setEnabled(false);
         activate.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View v) {
                 // TODO: 16/03/16 Finalize connection and return
+                Log.d(TAG, "Ready for activation: " + deviceNickName.getText().toString() + " device: " + selectedDevice + " to endpoint: " + selectedEndpoint);
             }
         });
 
@@ -118,61 +134,32 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
         });
     }
 
-    /**
-     * Check if we have the appropriate permissions
-     *
-     * */
-
-    public void testForPermissions(){
-
-        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
-            Toast.makeText(this, R.string.ble_not_supported, Toast.LENGTH_SHORT).show();
-            finish();
-        }else {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                if (this.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                    final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                    builder.setTitle("This app needs location access");
-                    builder.setMessage("Please grant location access so this app can detect beacons.");
-                    builder.setPositiveButton(android.R.string.ok, null);
-                    builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
-
-                        public void onDismiss(DialogInterface dialog) {
-                            requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, PERMISSION_REQUEST_COARSE_LOCATION);
-                        }
-                    });
-                    builder.show();
-                }
-            }
-        }
-
-        // Initializes a Bluetooth adapter.  For API level 18 and above, get a reference to
-        // BluetoothAdapter through BluetoothManager.
-        final BluetoothManager bluetoothManager =
-                (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
-        mBluetoothAdapter = bluetoothManager.getAdapter();
-
-        // Checks if Bluetooth is supported on the device.
-        if (mBluetoothAdapter == null) {
-            Toast.makeText(this, R.string.error_bluetooth_not_supported, Toast.LENGTH_SHORT).show();
-            finish();
-        }
+    public void devicePickerActive(boolean val){
+        devicePickerIsActive = val;
     }
 
-
     public void startSearch(){
+
+        if(mBluetoothLeService == null){
+            Intent gattServiceIntent = new Intent(getActivity(), BluetoothLeService.class);
+            bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
+        }
+
         scanLeDevice(true);
-        launchDevicePicker();
+
+        if(!devicePickerIsActive){
+            launchDevicePicker();
+        }
 
         addDevice.setText("Stop scan...");
         helper.setVisibility(View.GONE);
+
     }
 
     public void stopSearch(){
         scanLeDevice(false);
-
         addDevice.setText("Scan");
-        if(!connectToSelectedDevice()){
+        if(!subscribeToCharacteristic()){
             helper.setVisibility(View.VISIBLE);
         }
     }
@@ -182,6 +169,11 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
 
     public void resetSearch(){
         deviceList.clear();
+        stopSearch();
+        helper.setVisibility(View.GONE);
+        mBluetoothLeService.disconnect();
+        findViewById(R.id.device_intro_text).setVisibility(View.VISIBLE);
+        addDevice.setVisibility(View.VISIBLE);
     }
 
     public void launchDevicePicker(){
@@ -191,6 +183,8 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
         Bundle bundle = new Bundle();
         bundle.putParcelableArrayList("devices", deviceList);
         deviceDialog.setArguments(bundle);
+
+        devicePickerActive(true);
 
         if (frag != null) {
             manager.beginTransaction().remove(frag).commit();
@@ -217,8 +211,8 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
     private void displayData(String stringExtra) {
         Log.d(TAG, "Received data: " + stringExtra);
         if(stringExtra!= null){
-            test.setText(stringExtra);
-            test.setVisibility(View.VISIBLE);
+            characteristicValue.setText(stringExtra);
+            characteristicValue.setVisibility(View.VISIBLE);
         }
     }
 
@@ -242,7 +236,7 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
         }
     }
 
-    public boolean connectToSelectedDevice(){
+    public boolean subscribeToCharacteristic(){
         mDeviceName = selectedDevice.getName();
         mDeviceAddress = selectedDevice.getAddress();
 
@@ -263,6 +257,9 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
                     Log.d(TAG, "HR NOT found. Defaulting instead" );
                     characteristic = mGattCharacteristics.get(0);
                 }
+
+                characteristicName.setText(SampleGattAttributes.lookup(characteristic.getUuid().toString(), getResources().getString(R.string.unknown_service)));
+
                 final int charaProp = characteristic.getProperties();
                 if ((charaProp | BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
 
@@ -412,6 +409,16 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
         deviceAdded = true;
         Log.d(TAG, "Trying to connect to. " + selectedDevice.getAddress() + " : " + selectedDevice.getName());
         boolean connected = mBluetoothLeService.connect(selectedDevice.getAddress());
+        if(connected){
+            deviceName.setText(selectedDevice.getName());
+            deviceAddress.setText(selectedDevice.getAddress());
+            findViewById(R.id.device_info).setVisibility(View.VISIBLE);
+            addDevice.setVisibility(View.GONE);
+            findViewById(R.id.device_intro_text).setVisibility(View.GONE);
+        }else{
+            deviceName.setText("Could not connect to device");
+            deviceAddress.setText(selectedDevice.getAddress());
+        }
         Log.d(TAG, "Connection completed: " + connected);
         checkCompleted();
     }
@@ -492,6 +499,8 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
                 Log.d(TAG, "CONNECTED TO GATT SERVICE");
             } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
                 mConnected = false;
+                characteristicName.setText("Disconnected from GATT");
+                characteristicValue.setText("");
 //                updateConnectionState(R.string.disconnected);
                 Log.d(TAG, "DISCONNECTED FROM GATT SERVICE");
                 clearUI();
@@ -508,8 +517,8 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
     private void displayGattServices(List<BluetoothGattService> supportedGattServices) {
 
         if (supportedGattServices== null) return;
-        String unknownServiceString = getResources().getString(R.string.unknown_service);
-        String unknownCharaString = getResources().getString(R.string.unknown_characteristic);
+//        String unknownServiceString = getResources().getString(R.string.unknown_service);
+//        String unknownCharaString = getResources().getString(R.string.unknown_characteristic);
 
         mGattCharacteristics = new ArrayList<BluetoothGattCharacteristic>();
 
@@ -531,8 +540,51 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
                 }
             }
         }
+        subscribeToCharacteristic();
         if(!found){
             Log.d(TAG, "NO SUPPORTED SERVICES...");
         }
     }
+
+    /**
+     * Check if we have the appropriate permissions
+     *
+     * */
+
+    public void testForPermissions(){
+
+        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
+            Toast.makeText(this, R.string.ble_not_supported, Toast.LENGTH_SHORT).show();
+            finish();
+        }else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (this.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                    builder.setTitle("This app needs location access");
+                    builder.setMessage("Please grant location access so this app can detect beacons.");
+                    builder.setPositiveButton(android.R.string.ok, null);
+                    builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+
+                        public void onDismiss(DialogInterface dialog) {
+                            requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, PERMISSION_REQUEST_COARSE_LOCATION);
+                        }
+                    });
+                    builder.show();
+                }
+            }
+        }
+
+        // Initializes a Bluetooth adapter.  For API level 18 and above, get a reference to
+        // BluetoothAdapter through BluetoothManager.
+        final BluetoothManager bluetoothManager =
+                (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        mBluetoothAdapter = bluetoothManager.getAdapter();
+
+        // Checks if Bluetooth is supported on the device.
+        if (mBluetoothAdapter == null) {
+            Toast.makeText(this, R.string.error_bluetooth_not_supported, Toast.LENGTH_SHORT).show();
+            finish();
+        }
+    }
+
 }

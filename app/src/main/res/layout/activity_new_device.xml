@@ -57,6 +57,7 @@
                     android:textColor="@color/darkgray"
                     />
             <TextView
+                    android:id="@+id/device_intro_text"
                     android:layout_marginTop="10dp"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -64,8 +65,11 @@
                     />
 
             <RelativeLayout
+                    android:id="@+id/device_info"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
+                    android:layout_height="wrap_content"
+                    android:visibility="gone"
+                    >
 
                 <Button
                         android:id="@+id/btn_removeDevice"
@@ -81,6 +85,7 @@
                         />
 
                 <LinearLayout
+
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:background="@color/lightgray"
@@ -106,7 +111,7 @@
                                 android:id="@+id/device_name"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Nordic_HRM"
+                                android:text="Not connected"
                                 android:textStyle="bold"
                                 android:textColor="@color/darkgray"
                                 />
@@ -115,7 +120,7 @@
                                 android:id="@+id/device_address"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="(60:33:4B:0D:F0:94)"
+
                                 android:layout_marginLeft="8dp"
                                 />
                     </LinearLayout>
@@ -135,7 +140,7 @@
                                 android:id="@+id/characteristic_name"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Heart rate monitor"
+                                android:text="No source found"
                                 android:textStyle="bold"
                                 android:textColor="@color/darkgray"
                                 />
@@ -146,6 +151,7 @@
                                 android:layout_height="wrap_content"
                                 android:text="(142)"
                                 android:layout_marginLeft="8dp"
+                                android:visibility="invisible"
                                 />
                     </LinearLayout>
                 </LinearLayout>
