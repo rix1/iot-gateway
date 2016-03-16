@@ -29,9 +29,10 @@
                     android:text="@string/device_name"
                     android:textSize="@dimen/text_heading_2"
                     android:textStyle="bold"
+                    android:textColor="@color/darkgray"
                     />
             <EditText
-                    android:id="@+id/device_name"
+                    android:id="@+id/device_name_field"
                     android:layout_width="fill_parent"
                     android:layout_height="wrap_content"
                     android:maxLength="28"
@@ -53,6 +54,7 @@
                     android:text="Physical device"
                     android:textSize="@dimen/text_heading_2"
                     android:textStyle="bold"
+                    android:textColor="@color/darkgray"
                     />
             <TextView
                     android:layout_marginTop="10dp"
@@ -72,73 +74,92 @@
                         android:layout_alignParentTop="true"
                         android:layout_alignParentEnd="true"
                         android:layout_marginTop="5dp"
-                        android:textScaleX="1dp"
+                        android:textScaleX="1.5"
+                        android:textColor="@color/darkgray"
                         android:text="X"
                         android:background="@android:color/transparent"
                         />
 
-            <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@color/lightgray"
-                    android:layout_marginTop="10dp"
-                    android:orientation="vertical"
-                    android:paddingLeft="10dp"
-                    android:paddingTop="15dp"
-                    android:paddingBottom="15dp"
-                    >
-
-                <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Data Source"
-                        android:textColor="@color/darkgray"
-                        />
                 <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="4dp"
+                        android:background="@color/lightgray"
+                        android:layout_marginTop="10dp"
+                        android:orientation="vertical"
+                        android:paddingLeft="10dp"
+                        android:paddingTop="15dp"
+                        android:paddingBottom="15dp"
                         >
-                <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Nordic_HRM"
-                        android:textStyle="bold"
-                        android:textColor="@color/darkgray"
-                        />
 
                     <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="(60:33:4B:0D:F0:94)"
-                            android:layout_marginLeft="8dp"
+                            android:text="Data Source"
+                            android:textColor="@color/darkgray"
                             />
-                </LinearLayout>
+                    <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="4dp"
+                            >
+                        <TextView
+                                android:id="@+id/device_name"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Nordic_HRM"
+                                android:textStyle="bold"
+                                android:textColor="@color/darkgray"
+                                />
 
-                <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Data Source"
-                        android:textColor="@color/darkgray"
-                        />
-                <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Heart rate measurement"
-                        android:textStyle="bold"
-                        android:textColor="@color/darkgray"
-                        />
-            </LinearLayout>
+                        <TextView
+                                android:id="@+id/device_address"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="(60:33:4B:0D:F0:94)"
+                                android:layout_marginLeft="8dp"
+                                />
+                    </LinearLayout>
+
+                    <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Data Source"
+                            android:textColor="@color/darkgray"
+                            />
+                    <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="4dp"
+                            >
+                        <TextView
+                                android:id="@+id/characteristic_name"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Heart rate monitor"
+                                android:textStyle="bold"
+                                android:textColor="@color/darkgray"
+                                />
+
+                        <TextView
+                                android:id="@+id/characteristic_value"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="(142)"
+                                android:layout_marginLeft="8dp"
+                                />
+                    </LinearLayout>
+                </LinearLayout>
             </RelativeLayout>
 
             <TextView
                     android:id="@+id/txt_helper"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Found 3 devices. Select the right one above."
+                    android:text="Testing connection... OK!"
                     android:layout_gravity="center"
                     android:textColor="@color/textColorHelper"
                     android:visibility="gone"
+                    android:layout_marginTop="5dp"
                     />
 
             <LinearLayout
@@ -148,36 +169,16 @@
                     android:gravity="center"
                     >
 
-            <Button
-                    android:id="@+id/btn_addDevice"
-                    android:layout_marginTop="12dp"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:paddingLeft="24dp"
-                    android:paddingRight="24dp"
-                    android:paddingTop="16dp"
-                    android:paddingBottom="16dp"
-                    android:text="Scan"
-                    />
-
-            <Button
-                    android:id="@+id/btn_test"
-                    android:layout_marginTop="12dp"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:paddingLeft="24dp"
-                    android:paddingRight="24dp"
-                    android:paddingTop="16dp"
-                    android:paddingBottom="16dp"
-                    android:text="Test"
-                    android:visibility="gone"
-                    />
-                <TextView
-                        android:id="@+id/txt_test"
+                <Button
+                        android:id="@+id/btn_addDevice"
+                        android:layout_marginTop="10dp"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="123"
-                        android:visibility="gone"
+                        android:paddingLeft="24dp"
+                        android:paddingRight="24dp"
+                        android:paddingTop="16dp"
+                        android:paddingBottom="16dp"
+                        android:text="Scan"
                         />
             </LinearLayout>
 
@@ -196,6 +197,7 @@
                     android:text="Endpoint"
                     android:textSize="@dimen/text_heading_2"
                     android:textStyle="bold"
+                    android:textColor="@color/darkgray"
                     />
             <TextView
                     android:layout_marginTop="10dp"

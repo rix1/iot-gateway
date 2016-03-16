@@ -21,66 +21,64 @@ import xyz.rix1.iot_gateway.helpers.Endpoint;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 
 public class NewDevice extends AppCompatActivity implements OnItemSelectedListener, DeviceAddedListener{
 
-    private ArrayList<Endpoint> endpoints;
+    private static final boolean DEBUG = true;
+
     private final static String TAG = NewDevice.class.getSimpleName();
-    private Button activate, addDevice;
+    private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
+    private static final int REQUEST_ENABLE_BT = 1;
+
     private boolean deviceAdded, endpointAdded;
-    TextView helper;
-
-    private ArrayList<BluetoothDevice> deviceList;
-//    private ArrayAdapter<BluetoothDevice> deviceAdapter;
-//    private Spinner deviceSpinner;
-//    private int deviceSpinnerID;
-
-    private Spinner endpointSpinner;
-    private int endpointSpinnerID;
-
-    final DisplayDeviceDialog editNameDialog = new DisplayDeviceDialog();
+    private boolean mScanning;
+    private boolean mConnected = false;
 
     private String mDeviceName;
     private String mDeviceAddress;
 
+    // Stops scanning after 10 seconds.
+    private static final long SCAN_PERIOD = 10000;
     private BluetoothLeService mBluetoothLeService;
     private BluetoothGattCharacteristic mNotifyCharacteristic;
-    private ArrayList<BluetoothGattCharacteristic> mGattCharacteristics = new ArrayList<BluetoothGattCharacteristic>();
-
     private BluetoothAdapter mBluetoothAdapter;
-    private boolean mScanning;
-    private boolean mConnected = false;
+
+    private ArrayList<BluetoothGattCharacteristic> mGattCharacteristics = new ArrayList<BluetoothGattCharacteristic>();
+    private ArrayList<Endpoint> endpoints;
+    private ArrayList<BluetoothDevice> deviceList;
 
     private Handler mHandler;
-    private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
-
-    private static final int REQUEST_ENABLE_BT = 1;
-
     private BluetoothDevice selectedDevice;
     private Endpoint selectedEndpoint;
 
-    // Stops scanning after 10 seconds.
-    private static final long SCAN_PERIOD = 10000;
-
-    private Button testButton;
+    private final DisplayDeviceDialog deviceDialog = new DisplayDeviceDialog();
+    private Spinner endpointSpinner;
+    private Button activate, addDevice;
+    private TextView helper;
     private TextView test;
 
-    private static final boolean DEBUG = true;
 
-    static final String[] DEBUGDEVICES = new String[] {"Nordic_HRM", "Fitbit Square", "Philips IntelliTemp"};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_new_device);
+
         mHandler = new Handler();
+        deviceAdded = endpointAdded = false;
+
+        deviceList = new ArrayList<BluetoothDevice>();
         helper = (TextView) findViewById(R.id.txt_helper);
 
-        deviceAdded = endpointAdded = false;
-        deviceList = new ArrayList<BluetoothDevice>();
+        initializeEndpoints();
+        setupButtons();
+        testForPermissions();
 
+        Intent gattServiceIntent = new Intent(getActivity(), BluetoothLeService.class);
+        bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
+    }
+
+    private void initializeEndpoints(){
         endpoints = new ArrayList<Endpoint>();
 
         if(DEBUG){
@@ -89,34 +87,43 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
             endpoints.add(new Endpoint("123.32.12.12", 1233, "Google Health"));
             endpoints.add(new Endpoint("123.32.12.12", 1233, "Home Server"));
         }
+        ArrayAdapter<Endpoint> adapter = new ArrayAdapter<Endpoint>(this, android.R.layout.simple_spinner_dropdown_item, endpoints);
+        endpointSpinner = (Spinner) findViewById(R.id.endpoint_spinner);
+        endpointSpinner.setAdapter(adapter);
+        endpointSpinner.setOnItemSelectedListener(this);
+    }
 
-
-        Log.d(TAG, "onCreate device added: " + deviceAdded + " : " + endpointAdded);
-
+    private void setupButtons(){
         activate = (Button) findViewById(R.id.btn_activate);
         addDevice = (Button) findViewById(R.id.btn_addDevice);
 
-        testButton = (Button) findViewById(R.id.btn_test);
-        test = (TextView) findViewById(R.id.txt_test);
-
         activate.setEnabled(false);
-
-        endpointSpinner = (Spinner) findViewById(R.id.endpoint_spinner);
-        endpointSpinnerID = endpointSpinner.getId();
-        ArrayAdapter<Endpoint> adapter = new ArrayAdapter<Endpoint>(this, android.R.layout.simple_spinner_dropdown_item, endpoints);
-        endpointSpinner.setAdapter(adapter);
-        endpointSpinner.setOnItemSelectedListener(this);
-
-
-//        deviceSpinner = (Spinner) findViewById(R.id.device_spinner);
-//        deviceSpinnerID = deviceSpinner.getId();
-//        deviceAdapter = new ArrayAdapter<BluetoothDevice>(this, android.R.layout.simple_spinner_dropdown_item, deviceList);
-
-//        deviceSpinner.setAdapter(deviceAdapter);
-//        deviceSpinner.setOnItemSelectedListener(this);
+        activate.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+                // TODO: 16/03/16 Finalize connection and return
+            }
+        });
 
 
-        testButton.setVisibility(View.VISIBLE);
+        addDevice.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(mScanning){
+                    stopSearch();
+                }else{
+                    startSearch();
+                }
+            }
+        });
+    }
+
+    /**
+     * Check if we have the appropriate permissions
+     *
+     * */
+
+    public void testForPermissions(){
 
         if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
             Toast.makeText(this, R.string.ble_not_supported, Toast.LENGTH_SHORT).show();
@@ -149,112 +156,79 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
         if (mBluetoothAdapter == null) {
             Toast.makeText(this, R.string.error_bluetooth_not_supported, Toast.LENGTH_SHORT).show();
             finish();
-            return;
         }
-
-        testButton.setOnClickListener(new View.OnClickListener(){
-
-            @Override
-            public void onClick(View v) {
-
-//                editNameDialog.update("Nytt element");
-
-                // TODO: 15/03/16 Connect to device and display data
-
-                mDeviceName = selectedDevice.getName();
-                mDeviceAddress = selectedDevice.getAddress();
-
-
-                if (mGattCharacteristics != null) {
-                    if(mGattCharacteristics.size() > 0){
-                        BluetoothGattCharacteristic characteristic = null;        // TODO: 15/03/16 It only supports one characteristic
-                        BluetoothGattCharacteristic backup = null;        // TODO: 15/03/16 It only supports one characteristic
-                        boolean found = false;
-                        for (BluetoothGattCharacteristic chara : mGattCharacteristics) {
-                            if (chara.getUuid().toString().equals(SampleGattAttributes.HEART_RATE_MEASUREMENT)) {
-                                characteristic = chara;
-                                found = true;
-                                Log.d(TAG, "Registering heart rate measurement samples");
-                            }
-                        }
-                        if (!found) {
-                            Log.d(TAG, "HR NOT found. Defaulting instead" );
-                            characteristic = mGattCharacteristics.get(0);
-                        }
-                        final int charaProp = characteristic.getProperties();
-                        if ((charaProp | BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
-
-                            // If there is an active notification on a characteristic, clear
-                            // it first so it doesn't update the data field on the user interface.
-                            if (mNotifyCharacteristic != null) {
-                                mBluetoothLeService.setCharacteristicNotification(mNotifyCharacteristic, false);
-                                mNotifyCharacteristic = null;
-                            }
-                            mBluetoothLeService.readCharacteristic(characteristic);
-                        }
-                        if ((charaProp | BluetoothGattCharacteristic.PROPERTY_NOTIFY) > 0) {
-                            mNotifyCharacteristic = characteristic;
-//                            Log.d(TAG, "Setting notification on: " + characteristic.getUuid().toString());
-                            mBluetoothLeService.setCharacteristicNotification(characteristic, true);
-                        }
-                    }else{
-                        Log.d(TAG, "WOPS, YOU CANNOT TEST FORDDI VI HAKK FUNNET NOEN CHARACTERISTICS");
-                    }
-                }
-            }
-        });
-
-        addDevice.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(!mScanning){
-                    Log.d(TAG, "Clearing device list from " + deviceList.size());
-                    deviceList.clear();
-                    Log.d(TAG, "Clearing device list to " + deviceList.size());
-
-                    addDevice.setText("Stop scan...");
-                    helper.setVisibility(View.GONE);
-                    scanLeDevice(true);
-                    scanDevices();
-                }else{
-                    addDevice.setText("Scan");
-                    scanLeDevice(false);
-                }
-            }
-        });
-        Intent gattServiceIntent = new Intent(getActivity(), BluetoothLeService.class);
-        bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
     }
 
-    public void scanDevices(){
 
+    public void startSearch(){
+        scanLeDevice(true);
+        launchDevicePicker();
+
+        addDevice.setText("Stop scan...");
+        helper.setVisibility(View.GONE);
+    }
+
+    public void stopSearch(){
+        scanLeDevice(false);
+
+        addDevice.setText("Scan");
+        if(!connectToSelectedDevice()){
+            helper.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void scanFinished(){
+    }
+
+    public void resetSearch(){
+        deviceList.clear();
+    }
+
+    public void launchDevicePicker(){
         FragmentManager manager = getFragmentManager();
         Fragment frag = manager.findFragmentByTag("test");
 
         Bundle bundle = new Bundle();
         bundle.putParcelableArrayList("devices", deviceList);
-        editNameDialog.setArguments(bundle);
+        deviceDialog.setArguments(bundle);
 
         if (frag != null) {
             manager.beginTransaction().remove(frag).commit();
         }
-
-        editNameDialog.show(manager, "test");
-
+        deviceDialog.show(manager, "test");
         deviceAdded = true;
         checkCompleted();
     }
 
+    public void checkCompleted(){
+        activate.setEnabled(deviceAdded && endpointAdded);
+    }
+
+    public void setEndpoint(int pos) {
+        this.selectedEndpoint = endpoints.get(pos);
+        endpointAdded = (pos > 0);
+        checkCompleted();
+    }
+
+    public void clearUI(){
+        helper.setText("Disconnected...");
+    }
+
+    private void displayData(String stringExtra) {
+        Log.d(TAG, "Received data: " + stringExtra);
+        if(stringExtra!= null){
+            test.setText(stringExtra);
+            test.setVisibility(View.VISIBLE);
+        }
+    }
 
     private void scanLeDevice(final boolean enable) {
         if (enable) {
-            // Stops scanning after a pre-defined scan period.
             mHandler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     mScanning = false;
                     mBluetoothAdapter.stopLeScan(mLeScanCallback);
-//                    invalidateOptionsMenu();
                 }
             }, SCAN_PERIOD);
 
@@ -266,19 +240,65 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
             mScanning = false;
             mBluetoothAdapter.stopLeScan(mLeScanCallback);
         }
-//        invalidateOptionsMenu();
     }
 
-    private void scanFinished(){
+    public boolean connectToSelectedDevice(){
+        mDeviceName = selectedDevice.getName();
+        mDeviceAddress = selectedDevice.getAddress();
 
-        if(deviceList.size() < 1){
-            helper.setText("No devices found...");
-        }else{
-            helper.setText("Found " + deviceList.size() + " devices. Select the right one above.");
-            testButton.setVisibility(View.VISIBLE);
+        boolean found = false;
+        boolean success = false;
+
+        if (mGattCharacteristics != null) {
+            if(mGattCharacteristics.size() > 0){
+                BluetoothGattCharacteristic characteristic = null;        // TODO: 15/03/16 It only supports one characteristic
+                for (BluetoothGattCharacteristic chara : mGattCharacteristics) {
+                    if (chara.getUuid().toString().equals(SampleGattAttributes.HEART_RATE_MEASUREMENT)) {
+                        characteristic = chara;
+                        found = true;
+                        Log.d(TAG, "Registering heart rate measurement samples");
+                    }
+                }
+                if (!found) {
+                    Log.d(TAG, "HR NOT found. Defaulting instead" );
+                    characteristic = mGattCharacteristics.get(0);
+                }
+                final int charaProp = characteristic.getProperties();
+                if ((charaProp | BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
+
+                    // If there is an active notification on a characteristic, clear
+                    // it first so it doesn't update the data field on the user interface.
+                    if (mNotifyCharacteristic != null) {
+                        mBluetoothLeService.setCharacteristicNotification(mNotifyCharacteristic, false);
+                        mNotifyCharacteristic = null;
+                    }
+                    mBluetoothLeService.readCharacteristic(characteristic);
+                }
+                if ((charaProp | BluetoothGattCharacteristic.PROPERTY_NOTIFY) > 0) {
+                    mNotifyCharacteristic = characteristic;
+//                            Log.d(TAG, "Setting notification on: " + characteristic.getUuid().toString());
+                    mBluetoothLeService.setCharacteristicNotification(characteristic, true);
+                    success = true;
+                }
+            }else{
+
+                Log.d(TAG, "WOPS, YOU CANNOT TEST FORDDI VI HAKK FUNNET NOEN CHARACTERISTICS");
+            }
         }
-        helper.setVisibility(View.VISIBLE);
+        return (found && success); // TODO: 16/03/16 HUSK!
     }
+
+
+
+
+
+
+//    ===================================== OVERRIDE-HELVETE FOLLOWS ======================================================
+
+
+
+
+
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
@@ -357,12 +377,7 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
 
     @Override
     public void handleDialogClose(String msg) {
-        Log.d(TAG, "Dialog dismissed.....!!! COMS");
-    }
-
-
-    public void checkCompleted(){
-        activate.setEnabled(deviceAdded && endpointAdded);
+//        Log.d(TAG, "Dialog dismissed.....!");
     }
 
     @Override
@@ -387,18 +402,9 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
         return super.onOptionsItemSelected(item);
     }
 
-
-
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-//        Log.d(TAG, "Spinner " + parent.getId() + " was activated: " + id + " at pos " + position);
-        int spinnerID = parent.getId();
-
-        if (spinnerID == endpointSpinnerID) {
-            setEndpoint(position);
-        }else{
-            Log.d(TAG, "Some random spinner got activated. Fuck the what");
-        }
+        setEndpoint(position);
     }
 
     public void setDevice(int pos){
@@ -407,15 +413,7 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
         Log.d(TAG, "Trying to connect to. " + selectedDevice.getAddress() + " : " + selectedDevice.getName());
         boolean connected = mBluetoothLeService.connect(selectedDevice.getAddress());
         Log.d(TAG, "Connection completed: " + connected);
-        activate.setEnabled(endpointAdded && deviceAdded);
-    }
-
-
-    public void setEndpoint(int pos) {
-        this.selectedEndpoint = endpoints.get(pos);
-
-        endpointAdded = (pos > 0);
-        activate.setEnabled(endpointAdded && deviceAdded);
+        checkCompleted();
     }
 
     @Override
@@ -450,16 +448,13 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
                                 deviceList.add(device);
 //                                deviceSpinner.setVisibility(View.VISIBLE);
 //                                deviceAdapter.notifyDataSetChanged();
-                                editNameDialog.update(deviceList);
+                                deviceDialog.update(deviceList);
                             }
                         }
                     });
                 }
             };
 
-    public void clearUI(){
-        test.setText("Disconnected...");
-    }
 
     // Code to manage Service lifecycle.
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
@@ -509,14 +504,6 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
             }
         }
     };
-
-    private void displayData(String stringExtra) {
-        Log.d(TAG, "Received data: " + stringExtra);
-        if(stringExtra!= null){
-            test.setText(stringExtra);
-            test.setVisibility(View.VISIBLE);
-        }
-    }
 
     private void displayGattServices(List<BluetoothGattService> supportedGattServices) {
 
