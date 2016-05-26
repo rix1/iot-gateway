@@ -22,7 +22,10 @@ import xyz.rix1.iot_gateway.helpers.DeviceAddedListener;
 import xyz.rix1.iot_gateway.helpers.DisplayDeviceDialog;
 import xyz.rix1.iot_gateway.helpers.Endpoint;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class NewDevice extends AppCompatActivity implements OnItemSelectedListener, DeviceAddedListener, MeteorCallback {
@@ -60,6 +63,8 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
     private TextView helper, deviceName, deviceAddress, characteristicName, characteristicValue, helper2;
     private EditText deviceNickName;
     private boolean devicePickerIsActive;
+    private boolean started;
+
 
     private Meteor mMeteor;
     private boolean sendData;
@@ -74,6 +79,7 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
         mHandler = new Handler();
         sendData = deviceAdded = endpointAdded = false;
 
+        started = false;
 
         deviceList = new ArrayList<>();
         helper = (TextView) findViewById(R.id.txt_helper);
@@ -95,6 +101,7 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
 
 
     private void meteorConnect(Endpoint endpoint){
+        started = true;
         // create a new instance
         mMeteor = new Meteor(this, endpoint.getURL());
 
@@ -127,9 +134,9 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
 
         if(DEBUG){
             endpoints.add(new Endpoint("0.0.0.0", 0000, "Please select..."));
-            endpoints.add(new Endpoint("10.20.106.181", 3000, "Personal server"));
-            endpoints.add(new Endpoint("10.20.106.181", 3000, "Google Health"));
-            endpoints.add(new Endpoint("10.20.106.181", 3000, "St. Olavs"));
+            endpoints.add(new Endpoint("10.24.21.171", 3000, "Mastersalen MBP"));
+            endpoints.add(new Endpoint("10.24.12.169", 3000, "Delphi"));
+            endpoints.add(new Endpoint("129.241.103.248", 3000, "Master MBP Kabel"));
         }
         ArrayAdapter<Endpoint> adapter = new ArrayAdapter<Endpoint>(this, android.R.layout.simple_spinner_dropdown_item, endpoints);
         endpointSpinner = (Spinner) findViewById(R.id.endpoint_spinner);
@@ -235,7 +242,7 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
         checkCompleted();
     }
 
-    public void <checkCompleted(){
+    public void checkCompleted(){
         boolean isComplete = (deviceAdded && endpointAdded);
         sendData = isComplete;
         activate.setEnabled(isComplete);
@@ -251,8 +258,10 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
         }else{
             findViewById(R.id.endpoint_intro_text).setVisibility(View.VISIBLE);
             endpointAdded = false;
-//            mMeteor.disconnect();
-//            helper2.setText("Disconnected from server...,");
+            if(started){
+                mMeteor.disconnect();
+                helper2.setText("Disconnected from server...,");
+            }
         }
         checkCompleted();
     }
@@ -262,12 +271,22 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
     }
 
     private void displayData(String stringExtra) {
-        Log.d(TAG, "Received data: " + stringExtra);
+//        Log.d(TAG, "Received data: " + stringExtra);
         if(stringExtra!= null){
             characteristicValue.setText(stringExtra);
             characteristicValue.setVisibility(View.VISIBLE);
+
+            Date date = new Date();
+            SimpleDateFormat sdf = new SimpleDateFormat("dd-M-yyyy hh:mm:ss");
+            String dateInString = "22-01-2015 10:20:56";
+            try {
+                date = sdf.parse(dateInString);
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+
             if(sendData){
-                mMeteor.call("deviceData", new Object[]{stringExtra}, resultListener);
+                mMeteor.call("addData", new Object[]{stringExtra, date.getTime()}, resultListener);
             }
         }
     }
@@ -656,7 +675,7 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
 
             @Override
             public void onError(String s, String s1, String s2) {
-                Log.d(TAG, "DDP error " + s);
+                Log.d(TAG, "DDP error " +s);
                 helper2.setText("Could not connect to server");
                 helper2.setVisibility(View.VISIBLE);
             }
@@ -666,10 +685,12 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
     @Override
     public void onDisconnect() {
         Log.d(TAG, "METEOR we are DISCONNECTED" + mMeteor.isConnected());
+        helper2.setText("Disconnected...");
     }
 
     @Override
     public void onException(Exception e) {
+        helper2.setText("Error?");
 
     }
 
