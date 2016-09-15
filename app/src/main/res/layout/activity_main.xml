@@ -42,25 +42,25 @@
                 android:orientation="vertical"
         >
 
-        <Button
-            android:id="@+id/btnSimpleSnackbar"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:text="Simple Snackbar" />
+        <!--<Button-->
+            <!--android:id="@+id/btnSimpleSnackbar"-->
+            <!--android:layout_width="fill_parent"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:text="Simple Snackbar" />-->
 
-        <Button
-            android:id="@+id/btnActionCallback"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:text="With Action Callback" />
+        <!--<Button-->
+            <!--android:id="@+id/btnActionCallback"-->
+            <!--android:layout_width="fill_parent"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:layout_marginTop="10dp"-->
+            <!--android:text="With Action Callback" />-->
 
-        <Button
-            android:id="@+id/btnCustomSnackbar"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:text="Custom Color" />
+        <!--<Button-->
+            <!--android:id="@+id/btnCustomSnackbar"-->
+            <!--android:layout_width="fill_parent"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:layout_marginTop="10dp"-->
+            <!--android:text="Custom Color" />-->
 
         </LinearLayout>
 

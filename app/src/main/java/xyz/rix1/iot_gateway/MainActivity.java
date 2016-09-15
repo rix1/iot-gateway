@@ -13,7 +13,6 @@ import android.view.View;
 import android.widget.*;
 
 public class MainActivity extends AppCompatActivity  {
-
     private Toolbar mToolbar;
 
     private CoordinatorLayout coordinatorLayout;
@@ -30,11 +29,11 @@ public class MainActivity extends AppCompatActivity  {
 
         coordinatorLayout = (CoordinatorLayout) findViewById(R.id
                 .coordinatorLayout);
-
+//
         fab = (ImageButton) findViewById(R.id.fab);
         mToolbar = (Toolbar) findViewById(R.id.toolbar);
-
-
+//
+//
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, DEVICES);
         ListView lv = (ListView)findViewById(android.R.id.list);
         lv.setAdapter(adapter);
@@ -47,11 +46,11 @@ public class MainActivity extends AppCompatActivity  {
             }
         });
 
-        setSupportActionBar(mToolbar);
+//        setSupportActionBar(mToolbar);
 
-        btnSimpleSnackbar = (Button) findViewById(R.id.btnSimpleSnackbar);
-        btnActionCallback = (Button) findViewById(R.id.btnActionCallback);
-        btnCustomView = (Button) findViewById(R.id.btnCustomSnackbar);
+//        btnSimpleSnackbar = (Button) findViewById(R.id.btnSimpleSnackbar);
+//        btnActionCallback = (Button) findViewById(R.id.btnActionCallback);
+//        btnCustomView = (Button) findViewById(R.id.btnCustomSnackbar);
 
         fab.setOnClickListener(new ImageButton.OnClickListener(){
 
@@ -66,55 +65,55 @@ public class MainActivity extends AppCompatActivity  {
             }
         });
 
-        btnSimpleSnackbar.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar snackbar = Snackbar
-                        .make(coordinatorLayout, "Welcome to AndroidHive", Snackbar.LENGTH_LONG);
+//        btnSimpleSnackbar.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                Snackbar snackbar = Snackbar
+//                        .make(coordinatorLayout, "Welcome to AndroidHive", Snackbar.LENGTH_LONG);
+//
+//                snackbar.show();
+//            }
+//        });
 
-                snackbar.show();
-            }
-        });
+//        btnActionCallback.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                Snackbar snackbar = Snackbar
+//                        .make(coordinatorLayout, "Message is deleted", Snackbar.LENGTH_LONG)
+//                        .setAction("UNDO", new View.OnClickListener() {
+//                            @Override
+//                            public void onClick(View view) {
+//                                Snackbar snackbar1 = Snackbar.make(coordinatorLayout, "Message is restored!", Snackbar.LENGTH_SHORT);
+//                                snackbar1.show();
+//                            }
+//                        });
+//
+//                snackbar.show();
+//            }
+//        });
 
-        btnActionCallback.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar snackbar = Snackbar
-                        .make(coordinatorLayout, "Message is deleted", Snackbar.LENGTH_LONG)
-                        .setAction("UNDO", new View.OnClickListener() {
-                            @Override
-                            public void onClick(View view) {
-                                Snackbar snackbar1 = Snackbar.make(coordinatorLayout, "Message is restored!", Snackbar.LENGTH_SHORT);
-                                snackbar1.show();
-                            }
-                        });
-
-                snackbar.show();
-            }
-        });
-
-        btnCustomView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar snackbar = Snackbar
-                        .make(coordinatorLayout, "No internet connection!", Snackbar.LENGTH_LONG)
-                        .setAction("RETRY", new View.OnClickListener() {
-                            @Override
-                            public void onClick(View view) {
-                            }
-                        });
-
-                // Changing message text color
-                snackbar.setActionTextColor(Color.RED);
-
-                // Changing action button text color
-                View sbView = snackbar.getView();
-                TextView textView = (TextView) sbView.findViewById(android.support.design.R.id.snackbar_text);
-                textView.setTextColor(Color.YELLOW);
-
-                snackbar.show();
-            }
-        });
+//        btnCustomView.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                Snackbar snackbar = Snackbar
+//                        .make(coordinatorLayout, "No internet connection!", Snackbar.LENGTH_LONG)
+//                        .setAction("RETRY", new View.OnClickListener() {
+//                            @Override
+//                            public void onClick(View view) {
+//                            }
+//                        });
+//
+//                // Changing message text color
+//                snackbar.setActionTextColor(Color.RED);
+//
+//                // Changing action button text color
+//                View sbView = snackbar.getView();
+//                TextView textView = (TextView) sbView.findViewById(android.support.design.R.id.snackbar_text);
+//                textView.setTextColor(Color.YELLOW);
+//
+//                snackbar.show();
+//            }
+//        });
     }
 
     public void addDevice(){
@@ -124,5 +123,6 @@ public class MainActivity extends AppCompatActivity  {
 //        intent.putExtra(EXTRA_MESSAGE, message);
         startActivity(intent);
     }
+
 }
 

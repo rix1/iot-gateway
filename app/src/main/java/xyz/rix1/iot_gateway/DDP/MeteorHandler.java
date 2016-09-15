@@ -43,7 +43,6 @@ public class MeteorHandler extends ContextWrapper implements MeteorCallback {
     @Override
     public void onDisconnect() {
         Log.d("DDP", "DISCONNECTING NOW");
-
     }
 
     @Override

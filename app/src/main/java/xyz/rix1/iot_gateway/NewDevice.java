@@ -5,7 +5,10 @@ import android.app.*;
 import android.bluetooth.*;
 import android.content.*;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.os.*;
+import android.support.design.widget.CoordinatorLayout;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -39,6 +42,8 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
     private boolean deviceAdded, endpointAdded;
     private boolean mScanning;
     private boolean mConnected = false;
+    private CoordinatorLayout coordinatorLayout;
+
 
     private String mDeviceName;
     private String mDeviceAddress;
@@ -91,6 +96,9 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
         characteristicName = (TextView) findViewById(R.id.characteristic_name);
         characteristicValue = (TextView) findViewById(R.id.characteristic_value);
 
+        coordinatorLayout = (CoordinatorLayout) findViewById(R.id
+                .coordinatorLayout);
+
         initializeEndpoints();
         setupButtons();
         testForPermissions();
@@ -114,9 +122,13 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
         resultListener = new ResultListener() {
             @Override
             public void onSuccess(String s) {
-                Log.d(TAG, "DDP response: " + s);
+                Log.d(TAG, "DDP: msg received, res: " + s);
                 helper2.setText("Connected to server");
                 helper2.setVisibility(View.VISIBLE);
+
+                Snackbar snackbar = Snackbar
+                        .make(coordinatorLayout, "Connected to meteor (up)", Snackbar.LENGTH_SHORT);
+                snackbar.show();
             }
 
             @Override
@@ -124,6 +136,19 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
                 Log.d(TAG, "DDP error " + s);
                 helper2.setText("Could not connect to server");
                 helper2.setVisibility(View.VISIBLE);
+//                mMeteor.reconnect();
+                Snackbar snackbar = Snackbar
+                        .make(coordinatorLayout, "Disconnected from Meteor. (up)", Snackbar.LENGTH_LONG)
+                        .setAction("Reconnect", new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                mMeteor.reconnect();
+                                Snackbar snackbar1 = Snackbar.make(coordinatorLayout, "Will try to reconnect!", Snackbar.LENGTH_SHORT);
+                                snackbar1.show();
+                            }
+                        });
+
+                snackbar.show();
             }
         };
     }
@@ -137,6 +162,7 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
             endpoints.add(new Endpoint("10.24.21.171", 3000, "Mastersalen MBP"));
             endpoints.add(new Endpoint("10.24.12.169", 3000, "Delphi"));
             endpoints.add(new Endpoint("129.241.103.248", 3000, "Master MBP Kabel"));
+            endpoints.add(new Endpoint("129.241.102.116", 3000, "MasterBOKS"));
         }
         ArrayAdapter<Endpoint> adapter = new ArrayAdapter<Endpoint>(this, android.R.layout.simple_spinner_dropdown_item, endpoints);
         endpointSpinner = (Spinner) findViewById(R.id.endpoint_spinner);
@@ -163,6 +189,19 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
             public void onClick(View v) {
                 // TODO: 16/03/16 Finalize connection and return
                 Log.d(TAG, "Ready for activation: " + deviceNickName.getText().toString() + " device: " + selectedDevice + " to endpoint: " + selectedEndpoint);
+
+                if(sendData){
+                    Date date = new Date();
+                    SimpleDateFormat sdf = new SimpleDateFormat("dd-M-yyyy hh:mm:ss");
+                    String dateInString = "22-01-2015 10:20:56";
+                    try {
+                        date = sdf.parse(dateInString);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+                    Log.d(TAG, "Sending data to meteor!");
+                    mMeteor.call("addData", new Object[]{"-1", date.getTime()}, resultListener);
+                }
                 sendData = true;
             }
         });
@@ -255,6 +294,18 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
         if(endpointAdded){
             Log.d(TAG, "Adding endpoint and connecting to meteor...");
             meteorConnect(selectedEndpoint);
+
+            Snackbar snackbar = Snackbar
+                    .make(coordinatorLayout, "Connecting to server... ", Snackbar.LENGTH_SHORT);
+            snackbar.show();
+
+
+            // Changing action button text color
+            View sbView = snackbar.getView();
+            TextView textView = (TextView) sbView.findViewById(android.support.design.R.id.snackbar_text);
+            textView.setTextColor(Color.YELLOW);
+
+            snackbar.show();
         }else{
             findViewById(R.id.endpoint_intro_text).setVisibility(View.VISIBLE);
             endpointAdded = false;
@@ -271,7 +322,7 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
     }
 
     private void displayData(String stringExtra) {
-//        Log.d(TAG, "Received data: " + stringExtra);
+        Log.d(TAG, "Received data: " + stringExtra);
         if(stringExtra!= null){
             characteristicValue.setText(stringExtra);
             characteristicValue.setVisibility(View.VISIBLE);
@@ -287,6 +338,7 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
 
             if(sendData){
                 mMeteor.call("addData", new Object[]{stringExtra, date.getTime()}, resultListener);
+//                Toast.makeText(getBaseContext(), "Sent: " + stringExtra, Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -365,7 +417,7 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
 
 
 
-//    ===================================== OVERRIDE-HELVETE FOLLOWS ======================================================
+//    ===================================== OVERRIDE FOLLOWS ======================================================
 
 
 
@@ -585,6 +637,8 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
 //                mBluetoothLeService.getSupportedGattServices();
             } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
                 displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
+            }else{
+                Log.d(TAG, "WE received something, but we dont know what....");
             }
         }
     };
@@ -664,13 +718,17 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
 
     @Override
     public void onConnect(boolean b) {
-        Log.d(TAG, "METEOR we are connected " + mMeteor.isConnected());
+        Log.d(TAG, "Meteor connected: " + mMeteor.isConnected());
         mMeteor.call("helloMeteor", new Object[]{"Siri!"}, new ResultListener() {
             @Override
             public void onSuccess(String s) {
                 Log.d(TAG, "DDP success: " + s);
                 helper2.setText("Connected to server");
                 helper2.setVisibility(View.VISIBLE);
+
+                Snackbar snackbar = Snackbar
+                        .make(coordinatorLayout, "Connected to Meteor. (down)", Snackbar.LENGTH_LONG);
+                snackbar.show();
             }
 
             @Override
@@ -678,14 +736,40 @@ public class NewDevice extends AppCompatActivity implements OnItemSelectedListen
                 Log.d(TAG, "DDP error " +s);
                 helper2.setText("Could not connect to server");
                 helper2.setVisibility(View.VISIBLE);
+//                mMeteor.reconnect();
+                Snackbar snackbar = Snackbar
+                        .make(coordinatorLayout, "Meteor error onConnect. (down)", Snackbar.LENGTH_LONG)
+                        .setAction("Reconnect?", new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                mMeteor.reconnect();
+                                Snackbar snackbar1 = Snackbar.make(coordinatorLayout, "Will try to reconnect!", Snackbar.LENGTH_LONG);
+                                snackbar1.show();
+                            }
+                        });
+
+                snackbar.show();
             }
         });
     }
 
     @Override
     public void onDisconnect() {
-        Log.d(TAG, "METEOR we are DISCONNECTED" + mMeteor.isConnected());
+        Log.d(TAG, "Meteor connected: " + mMeteor.isConnected());
         helper2.setText("Disconnected...");
+
+        Snackbar snackbar = Snackbar
+                .make(coordinatorLayout, "Disconnected from Meteor. (down)", Snackbar.LENGTH_LONG)
+                .setAction("Reconnect", new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        mMeteor.reconnect();
+                        Snackbar snackbar1 = Snackbar.make(coordinatorLayout, "Will try to reconnect!", Snackbar.LENGTH_LONG);
+                        snackbar1.show();
+                    }
+                });
+
+        snackbar.show();
     }
 
     @Override
